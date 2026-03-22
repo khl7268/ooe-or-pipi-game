@@ -1,144 +1,137 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class Shopui : MonoBehaviour
 {
     [Header("UI References")]
-    public Text moneyText;
-    public Text unitCountText;
+    public TMP_Text moneyText;
+    public TMP_Text unitCountText;
     public Button pippiBuyButton;
     public Button bibiBuyButton;
     public Button startBattleButton;
-    
-    [Header("Shop s")]
+
+    [Header("Shop")]
     public Canvas shopCanvas;
     public Image backgroundImage;
-    
+
+    private GameObject selectedUnitPrefab; // 👈 핵심
+
     void Start()
     {
-        // 배경색을 흰색으로 설정
+        // 흰 배경
         if (backgroundImage != null)
             backgroundImage.color = Color.white;
-        
+
         pippiBuyButton.onClick.AddListener(BuyPippi);
         bibiBuyButton.onClick.AddListener(BuyBibi);
         startBattleButton.onClick.AddListener(StartBattle);
-        
+
         UpdateUI();
     }
-    
+
     void Update()
     {
-        if (GameManager.instance.currentState == GameManager.GameState.Shopping)
-            UpdateUI();
+        if (GameManager.instance.currentState != GameManager.GameState.Shopping)
+            return;
+
+        UpdateUI();
+
+        // 👇 배치 시스템
+        if (Input.GetMouseButtonDown(0) && selectedUnitPrefab != null)
+        {
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit))
+            {
+                SpawnUnit(hit.point);
+                selectedUnitPrefab = null; // 1회 배치
+            }
+        }
     }
-    
+
+    // 🔥 삐삐 구매
     void BuyPippi()
     {
         if (GameManager.instance.TryBuyPippiUnit())
         {
-            Debug.Log("삐삐 부대 구매!");
-            SpawnPippiUnit();
-            UpdateUI();
+            selectedUnitPrefab = Resources.Load<GameObject>("Units/Pippi");
+            Debug.Log("삐삐 배치 모드");
         }
         else
         {
-            Debug.Log("돈이 부족하거나 유닛 수가 초과되었습니다!");
+            Debug.Log("돈 부족 or 유닛 초과");
         }
     }
-    
+
+    // 🔥 비비 구매
     void BuyBibi()
     {
         if (GameManager.instance.TryBuyBibiUnit())
         {
-            Debug.Log("비비 부대 구매!");
-            SpawnBibiUnit();
-            UpdateUI();
+            selectedUnitPrefab = Resources.Load<GameObject>("Units/Bibi");
+            Debug.Log("비비 배치 모드");
         }
         else
         {
-            Debug.Log("돈이 부족하거나 유닛 수가 초과되었습니다!");
+            Debug.Log("돈 부족 or 유닛 초과");
         }
     }
-    
-    void SpawnPippiUnit()
+
+    // 🔥 실제 생성
+    void SpawnUnit(Vector3 pos)
     {
-        // 아래쪽 화면에 배치 (플레이어팀)
-        Vector3 spawnPos = new Vector3(Random.Range(-5f, 5f), 0, -10f + Random.Range(-2f, 2f));
-        GameObject unit = Resources.Load<GameObject>("Units/Pippi");
-        
-        if (unit != null)
-        {
-            GameObject newUnit = Instantiate(unit, spawnPos, Quaternion.identity);
-            newUnit.tag = "Player";
-            PippiController controller = newUnit.GetComponent<PippiController>();
-            if (controller != null)
-                controller.isPlayerTeam = true;
-        }
+        GameObject unit = Instantiate(selectedUnitPrefab, pos, Quaternion.identity);
+        unit.tag = "Player";
+
+        var p = unit.GetComponent<PippiController>();
+        if (p != null) p.isPlayerTeam = true;
+
+        var b = unit.GetComponent<BibiController>();
+        if (b != null) b.isPlayerTeam = true;
     }
-    
-    void SpawnBibiUnit()
-    {
-        // 아래쪽 화면에 배치 (플레이어팀)
-        Vector3 spawnPos = new Vector3(Random.Range(-5f, 5f), 0, -10f + Random.Range(-2f, 2f));
-        GameObject unit = Resources.Load<GameObject>("Units/Bibi");
-        
-        if (unit != null)
-        {
-            GameObject newUnit = Instantiate(unit, spawnPos, Quaternion.identity);
-            newUnit.tag = "Player";
-            BibiController controller = newUnit.GetComponent<BibiController>();
-            if (controller != null)
-                controller.isPlayerTeam = true;
-        }
-    }
-    
+
     void StartBattle()
     {
         Debug.Log("전투 시작!");
         GameManager.instance.StartBattle();
-        
-        // 적 부대 소환 (비비팀 - 위쪽)
+
         SpawnEnemyUnits();
-        
-        // 쇼핑 UI 숨기기
+
         if (shopCanvas != null)
             shopCanvas.gameObject.SetActive(false);
     }
-    
+
     void SpawnEnemyUnits()
     {
-        // 적 부대 10명 정도 소환 (위쪽 화면)
-        int enemyCount = Random.Range(5, 10);
-        
-        for (int i = 0; i < enemyCount; i++)
+        int count = Random.Range(5, 10);
+
+        for (int i = 0; i < count; i++)
         {
-            Vector3 spawnPos = new Vector3(Random.Range(-5f, 5f), 0, 10f + Random.Range(-2f, 2f));
-            GameObject unit = Resources.Load<GameObject>("Units/Bibi");
-            
-            if (unit != null)
-            {
-                GameObject newUnit = Instantiate(unit, spawnPos, Quaternion.identity);
-                newUnit.tag = "Enemy";
-                BibiController controller = newUnit.GetComponent<BibiController>();
-                if (controller != null)
-                {
-                    controller.isPlayerTeam = false;
-                    controller.targetTeamIsPlayer = true;
-                }
-            }
+            Vector3 pos = new Vector3(Random.Range(-5f, 5f), 0, Random.Range(6f, 12f));
+
+            GameObject prefab;
+
+            if (Random.value > 0.5f)
+                prefab = Resources.Load<GameObject>("Units/Pippi");
+            else
+                prefab = Resources.Load<GameObject>("Units/Bibi");
+
+            GameObject unit = Instantiate(prefab, pos, Quaternion.identity);
+            unit.tag = "Enemy";
+
+            var p = unit.GetComponent<PippiController>();
+            var b = unit.GetComponent<BibiController>();
+
+            if (p != null) p.isPlayerTeam = false;
+            if (b != null) b.isPlayerTeam = false;
         }
     }
-    
+
     void UpdateUI()
     {
         moneyText.text = "돈: " + GameManager.instance.money.ToString("F0");
         unitCountText.text = "유닛: " + GameManager.instance.currentUnitCount + "/" + GameManager.instance.maxUnits;
-        
-        pippiBuyButton.interactable = GameManager.instance.money >= GameManager.instance.pippiBuyCost 
-            && GameManager.instance.currentUnitCount < GameManager.instance.maxUnits;
-        
-        bibiBuyButton.interactable = GameManager.instance.money >= GameManager.instance.bibiBuyCost 
-            && GameManager.instance.currentUnitCount < GameManager.instance.maxUnits;
     }
 }

@@ -5,7 +5,7 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
     
-    [Header("Game s")]
+    
     public float money = 500f;
     public float pippiBuyCost = 100f;
     public float bibiBuyCost = 150f;
@@ -14,7 +14,7 @@ public class GameManager : MonoBehaviour
     public int maxUnits = 30;
     public int currentUnitCount = 0;
     
-    [Header("Game State")]
+    
     public enum GameState { Shopping, Battle, GameOver }
     public GameState currentState = GameState.Shopping;
     
