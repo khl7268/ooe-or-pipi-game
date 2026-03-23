@@ -4,22 +4,20 @@ using TMPro;
 
 public class Shopui : MonoBehaviour
 {
-    [Header("UI References")]
     public TMP_Text moneyText;
     public TMP_Text unitCountText;
+
     public Button pippiBuyButton;
     public Button bibiBuyButton;
     public Button startBattleButton;
 
-    [Header("Shop")]
     public Canvas shopCanvas;
     public Image backgroundImage;
 
-    private GameObject selectedUnitPrefab; // 👈 핵심
+    private GameObject selectedUnitPrefab;
 
     void Start()
     {
-        // 흰 배경
         if (backgroundImage != null)
             backgroundImage.color = Color.white;
 
@@ -37,7 +35,7 @@ public class Shopui : MonoBehaviour
 
         UpdateUI();
 
-        // 👇 배치 시스템
+        // 🔥 배치
         if (Input.GetMouseButtonDown(0) && selectedUnitPrefab != null)
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -46,44 +44,39 @@ public class Shopui : MonoBehaviour
             if (Physics.Raycast(ray, out hit))
             {
                 SpawnUnit(hit.point);
-                selectedUnitPrefab = null; // 1회 배치
+                selectedUnitPrefab = null;
             }
         }
     }
 
-    // 🔥 삐삐 구매
     void BuyPippi()
     {
         if (GameManager.instance.TryBuyPippiUnit())
         {
             selectedUnitPrefab = Resources.Load<GameObject>("Units/Pippi");
-            Debug.Log("삐삐 배치 모드");
-        }
-        else
-        {
-            Debug.Log("돈 부족 or 유닛 초과");
+
+            if (selectedUnitPrefab == null)
+                Debug.LogError("Pippi 프리팹 못 찾음");
         }
     }
 
-    // 🔥 비비 구매
-    void BuyBibi()
+    public void BuyBibi()
     {
         if (GameManager.instance.TryBuyBibiUnit())
         {
             selectedUnitPrefab = Resources.Load<GameObject>("Units/Bibi");
-            Debug.Log("비비 배치 모드");
-        }
-        else
-        {
-            Debug.Log("돈 부족 or 유닛 초과");
+
+            if (selectedUnitPrefab == null)
+                Debug.LogError("Bibi 프리팹 못 찾음");
         }
     }
 
-    // 🔥 실제 생성
-    void SpawnUnit(Vector3 pos)
+    public void SpawnUnit(Vector3 pos)
     {
         GameObject unit = Instantiate(selectedUnitPrefab, pos, Quaternion.identity);
         unit.tag = "Player";
+
+        GameManager.instance.currentUnitCount++; // 👈 여기서 증가
 
         var p = unit.GetComponent<PippiController>();
         if (p != null) p.isPlayerTeam = true;
@@ -92,9 +85,8 @@ public class Shopui : MonoBehaviour
         if (b != null) b.isPlayerTeam = true;
     }
 
-    void StartBattle()
+    public void StartBattle()
     {
-        Debug.Log("전투 시작!");
         GameManager.instance.StartBattle();
 
         SpawnEnemyUnits();
@@ -117,6 +109,12 @@ public class Shopui : MonoBehaviour
                 prefab = Resources.Load<GameObject>("Units/Pippi");
             else
                 prefab = Resources.Load<GameObject>("Units/Bibi");
+
+            if (prefab == null)
+            {
+                Debug.LogError("Enemy 프리팹 못 찾음");
+                continue;
+            }
 
             GameObject unit = Instantiate(prefab, pos, Quaternion.identity);
             unit.tag = "Enemy";

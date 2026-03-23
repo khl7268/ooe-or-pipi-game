@@ -29,26 +29,24 @@ public class GameManager : MonoBehaviour
     }
     
     public bool TryBuyPippiUnit()
+{
+    if (money >= pippiBuyCost && currentUnitCount < maxUnits)
     {
-        if (money >= pippiBuyCost && currentUnitCount < maxUnits)
-        {
-            money -= pippiBuyCost;
-            currentUnitCount++;
-            return true;
-        }
-        return false;
+        money -= pippiBuyCost;
+        return true; // ❗ count 증가 제거
     }
-    
-    public bool TryBuyBibiUnit()
+    return false;
+}
+
+public bool TryBuyBibiUnit()
+{
+    if (money >= bibiBuyCost && currentUnitCount < maxUnits)
     {
-        if (money >= bibiBuyCost && currentUnitCount < maxUnits)
-        {
-            money -= bibiBuyCost;
-            currentUnitCount++;
-            return true;
-        }
-        return false;
+        money -= bibiBuyCost;
+        return true; // ❗ count 증가 제거
     }
+    return false;
+}
     
     public void StartBattle()
     {
